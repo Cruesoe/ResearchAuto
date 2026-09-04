@@ -122,10 +122,19 @@ namespace ResearchAuto
         private const int IdlePollInterval = 2500;
         private const int ResearchTabDeferTicks = 300;
 
+        private static ResearchTabDef tabAnomalyDef;
+        private static ResearchTabDef tabGravtechDef;
+        private static ResearchTabDef tabGravShipDef;
+        private static KnowledgeCategoryDef knowledgeDivinitechDef;
+        private static bool tabsResolved;
+
         private bool everythingFinishedLetterSent;
         private int delayTicks = -1;
         private ResearchProjectDef lastAssignedGravtech;
-        private readonly List<ResearchProjectDef> candidateCache = new List<ResearchProjectDef>();
+        private readonly List<ResearchProjectDef> anomalyCandidates = new List<ResearchProjectDef>();
+        private readonly List<ResearchProjectDef> divinitechCandidates = new List<ResearchProjectDef>();
+        private readonly List<ResearchProjectDef> gravshipCandidates = new List<ResearchProjectDef>();
+        private readonly List<ResearchProjectDef> standardCandidates = new List<ResearchProjectDef>();
 
         public AutoResearcher(Game game) : base() { }
 
@@ -175,7 +184,7 @@ namespace ResearchAuto
             }
 
             var settings = ResearchAutoMod.settings;
-            GetActiveParallelProjects(out bool anomalyActive, out bool gravshipActive, out bool divinitechActive);
+            ClassifyProjects(out bool anomalyActive, out bool gravshipActive, out bool divinitechActive);
 
             if (settings.includeAnomaly && !anomalyActive)
                 TryStartResearch(ResearchCategory.Anomaly);
@@ -218,37 +227,90 @@ namespace ResearchAuto
             }
         }
 
-        private void GetActiveParallelProjects(out bool anomalyActive, out bool gravshipActive, out bool divinitechActive)
+        private static void EnsureTabsResolved()
+        {
+            if (tabsResolved)
+                return;
+
+            tabAnomalyDef = DefDatabase<ResearchTabDef>.GetNamedSilentFail(TabAnomaly);
+            tabGravtechDef = DefDatabase<ResearchTabDef>.GetNamedSilentFail(TabGravtech);
+            tabGravShipDef = DefDatabase<ResearchTabDef>.GetNamedSilentFail(TabGravShip);
+            knowledgeDivinitechDef = DefDatabase<KnowledgeCategoryDef>.GetNamedSilentFail(KnowledgeDivinitech);
+            tabsResolved = true;
+        }
+
+        private void ClassifyProjects(out bool anomalyActive, out bool gravshipActive, out bool divinitechActive)
         {
             anomalyActive = false;
             gravshipActive = false;
             divinitechActive = false;
 
+            anomalyCandidates.Clear();
+            divinitechCandidates.Clear();
+            gravshipCandidates.Clear();
+            standardCandidates.Clear();
+
+            EnsureTabsResolved();
+
             var research = Find.ResearchManager;
+            TechLevel playerTech = Faction.OfPlayer.def.techLevel;
+            bool restrict = ResearchAutoMod.settings.restrictToPlayerTech;
             var projects = DefDatabase<ResearchProjectDef>.AllDefsListForReading;
+
             for (int i = 0; i < projects.Count; i++)
             {
                 var p = projects[i];
-                if (p.knowledgeCategory == null || research.GetProject(p.knowledgeCategory) != p)
+                bool isAnomaly = p.tab == tabAnomalyDef;
+                bool isGravship = !isAnomaly && (p.tab == tabGravtechDef || p.tab == tabGravShipDef);
+                bool isDivinitech = !isAnomaly && !isGravship && p.knowledgeCategory == knowledgeDivinitechDef;
+
+                if (p.knowledgeCategory != null && research.GetProject(p.knowledgeCategory) == p)
+                {
+                    if (isAnomaly)
+                        anomalyActive = true;
+                    else if (isGravship)
+                        gravshipActive = true;
+                    else if (isDivinitech)
+                        divinitechActive = true;
+                }
+
+                if (p.IsFinished || !p.CanStartNow)
                     continue;
 
-                if (IsAnomaly(p))
-                    anomalyActive = true;
-                else if (IsGravship(p))
-                    gravshipActive = true;
-                else if (IsDivinitech(p))
-                    divinitechActive = true;
+                if (isAnomaly)
+                    anomalyCandidates.Add(p);
+                else if (isGravship)
+                    gravshipCandidates.Add(p);
+                else if (isDivinitech)
+                    divinitechCandidates.Add(p);
+                else if (!restrict || p.techLevel <= playerTech)
+                    standardCandidates.Add(p);
+            }
+        }
+
+        private List<ResearchProjectDef> GetCandidates(ResearchCategory category)
+        {
+            switch (category)
+            {
+                case ResearchCategory.Anomaly:
+                    return anomalyCandidates;
+                case ResearchCategory.Gravship:
+                    return gravshipCandidates;
+                case ResearchCategory.Divinitech:
+                    return divinitechCandidates;
+                default:
+                    return standardCandidates;
             }
         }
 
         private bool TryStartResearch(ResearchCategory category)
         {
-            CollectCandidates(category);
-            if (candidateCache.Count == 0)
+            var candidates = GetCandidates(category);
+            if (candidates.Count == 0)
                 return false;
 
-            PreferProjectsWithProgress();
-            var selected = SelectCandidate(category);
+            PreferProjectsWithProgress(candidates);
+            var selected = SelectCandidate(category, candidates);
             if (selected == null)
                 return false;
 
@@ -258,35 +320,13 @@ namespace ResearchAuto
             return true;
         }
 
-        private void CollectCandidates(ResearchCategory category)
-        {
-            candidateCache.Clear();
-
-            TechLevel playerTech = Faction.OfPlayer.def.techLevel;
-            bool restrict = ResearchAutoMod.settings.restrictToPlayerTech;
-            var projects = DefDatabase<ResearchProjectDef>.AllDefsListForReading;
-
-            for (int i = 0; i < projects.Count; i++)
-            {
-                var p = projects[i];
-                if (p.IsFinished || !p.CanStartNow)
-                    continue;
-                if (GetCategory(p) != category)
-                    continue;
-                if (category == ResearchCategory.Standard && restrict && p.techLevel > playerTech)
-                    continue;
-
-                candidateCache.Add(p);
-            }
-        }
-
-        private void PreferProjectsWithProgress()
+        private static void PreferProjectsWithProgress(List<ResearchProjectDef> candidates)
         {
             var research = Find.ResearchManager;
             bool anyPartial = false;
-            for (int i = 0; i < candidateCache.Count; i++)
+            for (int i = 0; i < candidates.Count; i++)
             {
-                if (research.GetProgress(candidateCache[i]) > 0f)
+                if (research.GetProgress(candidates[i]) > 0f)
                 {
                     anyPartial = true;
                     break;
@@ -296,14 +336,14 @@ namespace ResearchAuto
             if (!anyPartial)
                 return;
 
-            for (int i = candidateCache.Count - 1; i >= 0; i--)
+            for (int i = candidates.Count - 1; i >= 0; i--)
             {
-                if (research.GetProgress(candidateCache[i]) <= 0f)
-                    candidateCache.RemoveAt(i);
+                if (research.GetProgress(candidates[i]) <= 0f)
+                    candidates.RemoveAt(i);
             }
         }
 
-        private ResearchProjectDef SelectCandidate(ResearchCategory category)
+        private static ResearchProjectDef SelectCandidate(ResearchCategory category, List<ResearchProjectDef> candidates)
         {
             bool matchTechLevel = category == ResearchCategory.Standard && !ResearchAutoMod.settings.ignoreTechLevel;
             bool prioritizeExpensive = ResearchAutoMod.settings.prioritizeExpensive;
@@ -311,19 +351,19 @@ namespace ResearchAuto
             TechLevel targetTech = TechLevel.Undefined;
             if (matchTechLevel)
             {
-                targetTech = candidateCache[0].techLevel;
-                for (int i = 1; i < candidateCache.Count; i++)
+                targetTech = candidates[0].techLevel;
+                for (int i = 1; i < candidates.Count; i++)
                 {
-                    if (candidateCache[i].techLevel < targetTech)
-                        targetTech = candidateCache[i].techLevel;
+                    if (candidates[i].techLevel < targetTech)
+                        targetTech = candidates[i].techLevel;
                 }
             }
 
             float targetCost = prioritizeExpensive ? float.MinValue : float.MaxValue;
             bool foundCost = false;
-            for (int i = 0; i < candidateCache.Count; i++)
+            for (int i = 0; i < candidates.Count; i++)
             {
-                var p = candidateCache[i];
+                var p = candidates[i];
                 if (matchTechLevel && p.techLevel != targetTech)
                     continue;
 
@@ -344,9 +384,9 @@ namespace ResearchAuto
 
             ResearchProjectDef selected = null;
             int matchCount = 0;
-            for (int i = 0; i < candidateCache.Count; i++)
+            for (int i = 0; i < candidates.Count; i++)
             {
-                var p = candidateCache[i];
+                var p = candidates[i];
                 if (matchTechLevel && p.techLevel != targetTech)
                     continue;
                 if (p.baseCost != targetCost)
@@ -360,26 +400,10 @@ namespace ResearchAuto
             return selected;
         }
 
-        private static ResearchCategory GetCategory(ResearchProjectDef p)
-        {
-            if (IsAnomaly(p))
-                return ResearchCategory.Anomaly;
-            if (IsGravship(p))
-                return ResearchCategory.Gravship;
-            if (IsDivinitech(p))
-                return ResearchCategory.Divinitech;
-            return ResearchCategory.Standard;
-        }
-
-        private static bool IsAnomaly(ResearchProjectDef p) => p.tab?.defName == TabAnomaly;
-
         private static bool IsGravship(ResearchProjectDef p)
         {
-            string tab = p.tab?.defName;
-            return tab == TabGravtech || tab == TabGravShip;
+            EnsureTabsResolved();
+            return p.tab == tabGravtechDef || p.tab == tabGravShipDef;
         }
-
-        private static bool IsDivinitech(ResearchProjectDef p) =>
-            p.knowledgeCategory?.defName == KnowledgeDivinitech;
     }
 }
