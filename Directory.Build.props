@@ -1,0 +1,22 @@
+<Project>
+  <!-- Shared RimWorld mod build settings. See ..\_ModKit\README.md -->
+  <PropertyGroup>
+    <ModRepoRoot>$(MSBuildThisFileDirectory)</ModRepoRoot>
+    <ModKitRoot Condition="'$(ModKitRoot)' == ''">$(RIMWORLD_MODKIT)</ModKitRoot>
+    <ModKitRoot Condition="'$(ModKitRoot)' == ''">$(MSBuildThisFileDirectory)..\_ModKit</ModKitRoot>
+    <ModKitRoot>$([MSBuild]::EnsureTrailingSlash('$(ModKitRoot)'))</ModKitRoot>
+
+    <!--
+      _ModKit is a plain local folder that this repo does not carry, so a fresh clone on
+      another machine will not have it. Without the guard below that surfaces as
+      "NETSDK1013: The TargetFramework value '' was not recognized", which says nothing
+      about the real cause. Keep evaluation valid instead and let Directory.Build.targets
+      raise a readable error.
+    -->
+    <ModKitProps>$(ModKitRoot)RimWorldMod.props</ModKitProps>
+    <ModKitMissing Condition="!Exists('$(ModKitProps)')">true</ModKitMissing>
+    <TargetFramework Condition="'$(ModKitMissing)' == 'true'">net472</TargetFramework>
+  </PropertyGroup>
+
+  <Import Project="$(ModKitProps)" Condition="'$(ModKitMissing)' != 'true'" />
+</Project>

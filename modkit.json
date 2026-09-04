@@ -1,0 +1,7 @@
+{
+  "name": "Research Auto",
+  "assemblyName": "ResearchAuto",
+  "workshopFolder": "Research Auto",
+  "gameVersion": "1.6",
+  "ship": ["1.6", "About"]
+}
