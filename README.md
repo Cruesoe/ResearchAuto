@@ -24,9 +24,3 @@ Open **Options → Mod settings → Research: Auto** to:
 - Ignore tech level when sorting projects.
 - Prefer expensive projects.
 - Include or exclude Anomaly, gravship, and Monolyn research.
-
-## Requirements
-
-- RimWorld 1.6
-- Harmony
-
