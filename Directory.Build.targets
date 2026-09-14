@@ -1,7 +1,35 @@
 <Project>
-  <Import Project="$(ModKitRoot)RimWorldMod.targets" Condition="'$(ModKitMissing)' != 'true'" />
+  <Target Name="RimWorldModVerifyReferences"
+          BeforeTargets="ResolveAssemblyReferences"
+          Condition="'$(IsRimWorldMod)' == 'true'">
+    <Error Condition="!Exists('$(RimWorldManaged)\Assembly-CSharp.dll')"
+           Text="RimWorld assemblies not found at '$(RimWorldManaged)'. Set RIMWORLD_DIR or pass -p:RimWorldRoot=..." />
+    <Error Condition="'$(UseHarmony)' != 'false' and !Exists('$(HarmonyDll)')"
+           Text="0Harmony.dll not found at '$(HarmonyDll)'. Set HARMONY_DLL, subscribe to Harmony, or set &lt;UseHarmony&gt;false&lt;/UseHarmony&gt; if this mod does not patch." />
+  </Target>
 
-  <Target Name="ModKitMissing" BeforeTargets="Build;Restore" Condition="'$(ModKitMissing)' == 'true'">
-    <Error Text="_ModKit was not found at '$(ModKitRoot)'. It is a local folder that lives beside the mod repos and is not checked in, so a fresh clone will not have it. Put it back at that path, or point the RIMWORLD_MODKIT environment variable at wherever it lives." />
+  <ItemGroup Condition="'$(IsRimWorldMod)' == 'true'">
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(RimWorldManaged)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony" Condition="'$(UseHarmony)' != 'false'">
+      <HintPath>$(HarmonyDll)</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <_RimWorldUnityModule Include="$(UnityModules)" />
+    <Reference Include="@(_RimWorldUnityModule->'UnityEngine.%(Identity)')">
+      <HintPath>$(RimWorldManaged)\%(Identity).dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="RimWorldModCopyToAssemblies"
+          AfterTargets="Build"
+          Condition="'$(IsRimWorldMod)' == 'true' and '$(CopyToModAssemblies)' != 'false'">
+    <MakeDir Directories="$(ModAssemblies)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModAssemblies)" SkipUnchangedFiles="true" />
+    <Delete Files="$(ModAssemblies)$(TargetName).pdb" Condition="Exists('$(ModAssemblies)$(TargetName).pdb')" />
+    <Message Importance="high" Text="  -&gt; $(ModAssemblies)$(TargetFileName)" />
   </Target>
 </Project>

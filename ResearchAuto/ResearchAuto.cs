@@ -306,6 +306,7 @@ namespace ResearchAuto
         private bool TryStartResearch(ResearchCategory category)
         {
             var candidates = GetCandidates(category);
+            RemoveProjectsWithOccupiedSlots(candidates);
             if (candidates.Count == 0)
                 return false;
 
@@ -318,6 +319,21 @@ namespace ResearchAuto
             if (ResearchAutoMod.settings.showMessages)
                 Messages.Message($"Research started: {selected.LabelCap}", MessageTypeDefOf.SilentInput, false);
             return true;
+        }
+
+        private static void RemoveProjectsWithOccupiedSlots(List<ResearchProjectDef> candidates)
+        {
+            var research = Find.ResearchManager;
+            for (int i = candidates.Count - 1; i >= 0; i--)
+            {
+                var candidate = candidates[i];
+                bool standardSlotOccupied = candidate.baseCost > 0f && research.GetProject() != null;
+                bool knowledgeSlotOccupied = candidate.knowledgeCategory != null
+                    && research.GetProject(candidate.knowledgeCategory) != null;
+
+                if (standardSlotOccupied || knowledgeSlotOccupied)
+                    candidates.RemoveAt(i);
+            }
         }
 
         private static void PreferProjectsWithProgress(List<ResearchProjectDef> candidates)

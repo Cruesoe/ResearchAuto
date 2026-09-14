@@ -1,22 +1,34 @@
 <Project>
-  <!-- Shared RimWorld mod build settings. See ..\_ModKit\README.md -->
   <PropertyGroup>
     <ModRepoRoot>$(MSBuildThisFileDirectory)</ModRepoRoot>
-    <ModKitRoot Condition="'$(ModKitRoot)' == ''">$(RIMWORLD_MODKIT)</ModKitRoot>
-    <ModKitRoot Condition="'$(ModKitRoot)' == ''">$(MSBuildThisFileDirectory)..\_ModKit</ModKitRoot>
-    <ModKitRoot>$([MSBuild]::EnsureTrailingSlash('$(ModKitRoot)'))</ModKitRoot>
-
-    <!--
-      _ModKit is a plain local folder that this repo does not carry, so a fresh clone on
-      another machine will not have it. Without the guard below that surfaces as
-      "NETSDK1013: The TargetFramework value '' was not recognized", which says nothing
-      about the real cause. Keep evaluation valid instead and let Directory.Build.targets
-      raise a readable error.
-    -->
-    <ModKitProps>$(ModKitRoot)RimWorldMod.props</ModKitProps>
-    <ModKitMissing Condition="!Exists('$(ModKitProps)')">true</ModKitMissing>
-    <TargetFramework Condition="'$(ModKitMissing)' == 'true'">net472</TargetFramework>
+    <IsRimWorldMod Condition="'$(IsRimWorldMod)' == ''">true</IsRimWorldMod>
+    <RimWorldGameVersion Condition="'$(RimWorldGameVersion)' == ''">1.6</RimWorldGameVersion>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion Condition="'$(LangVersion)' == ''">latest</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <Deterministic>true</Deterministic>
+    <GenerateAssemblyInfo Condition="'$(GenerateAssemblyInfo)' == ''">false</GenerateAssemblyInfo>
+    <RimWorldRoot Condition="'$(RimWorldRoot)' == ''">$(RIMWORLD_DIR)</RimWorldRoot>
+    <RimWorldRoot Condition="'$(RimWorldRoot)' == ''">C:\Program Files (x86)\Steam\steamapps\common\RimWorld</RimWorldRoot>
+    <RimWorldManaged Condition="'$(RimWorldManaged)' == ''">$(RimWorldRoot)\RimWorldWin64_Data\Managed</RimWorldManaged>
+    <HarmonyDll Condition="'$(HarmonyDll)' == ''">$(HARMONY_DLL)</HarmonyDll>
+    <HarmonyDll Condition="'$(HarmonyDll)' == ''">C:\Program Files (x86)\Steam\steamapps\workshop\content\294100\2009463077\Current\Assemblies\0Harmony.dll</HarmonyDll>
+    <UnityModules Condition="'$(UnityModules)' == ''">CoreModule;IMGUIModule;TextRenderingModule;InputLegacyModule</UnityModules>
+    <ModRepoRoot>$([MSBuild]::EnsureTrailingSlash('$(ModRepoRoot)'))</ModRepoRoot>
+    <ModAssemblies Condition="'$(ModAssemblies)' == ''">$(ModRepoRoot)$(RimWorldGameVersion)\Assemblies\</ModAssemblies>
   </PropertyGroup>
 
-  <Import Project="$(ModKitProps)" Condition="'$(ModKitMissing)' != 'true'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DebugType Condition="'$(DebugType)' == ''">full</DebugType>
+    <DebugSymbols Condition="'$(DebugSymbols)' == ''">true</DebugSymbols>
+    <Optimize Condition="'$(Optimize)' == ''">false</Optimize>
+    <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' != 'Debug'">
+    <DebugType Condition="'$(DebugType)' == ''">none</DebugType>
+    <DebugSymbols Condition="'$(DebugSymbols)' == ''">false</DebugSymbols>
+    <Optimize Condition="'$(Optimize)' == ''">true</Optimize>
+    <DefineConstants>$(DefineConstants);TRACE</DefineConstants>
+  </PropertyGroup>
 </Project>
