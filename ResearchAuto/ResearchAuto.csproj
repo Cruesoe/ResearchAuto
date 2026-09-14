@@ -1,8 +1,60 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
     <RootNamespace>ResearchAuto</RootNamespace>
     <AssemblyName>ResearchAuto</AssemblyName>
-    <UnityModules>CoreModule</UnityModules>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <Deterministic>true</Deterministic>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <RimWorldRoot Condition="'$(RimWorldRoot)' == ''">$(RIMWORLD_DIR)</RimWorldRoot>
+    <RimWorldRoot Condition="'$(RimWorldRoot)' == ''">C:\Program Files (x86)\Steam\steamapps\common\RimWorld</RimWorldRoot>
+    <RimWorldManaged>$(RimWorldRoot)\RimWorldWin64_Data\Managed</RimWorldManaged>
+    <HarmonyDll Condition="'$(HarmonyDll)' == ''">$(HARMONY_DLL)</HarmonyDll>
+    <HarmonyDll Condition="'$(HarmonyDll)' == ''">C:\Program Files (x86)\Steam\steamapps\workshop\content\294100\2009463077\Current\Assemblies\0Harmony.dll</HarmonyDll>
+    <ModAssemblies>$(MSBuildThisFileDirectory)..\1.6\Assemblies\</ModAssemblies>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>false</Optimize>
+    <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' != 'Debug'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Optimize>true</Optimize>
+    <DefineConstants>$(DefineConstants);TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(RimWorldManaged)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(HarmonyDll)</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(RimWorldManaged)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="VerifyReferences" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(RimWorldManaged)\Assembly-CSharp.dll')"
+           Text="RimWorld assemblies not found at '$(RimWorldManaged)'. Set RIMWORLD_DIR or pass -p:RimWorldRoot=..." />
+    <Error Condition="!Exists('$(HarmonyDll)')"
+           Text="0Harmony.dll not found at '$(HarmonyDll)'. Set HARMONY_DLL or subscribe to Harmony." />
+  </Target>
+
+  <Target Name="CopyDllToModAssemblies" AfterTargets="Build">
+    <MakeDir Directories="$(ModAssemblies)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModAssemblies)" SkipUnchangedFiles="true" />
+    <Delete Files="$(ModAssemblies)$(TargetName).pdb" Condition="Exists('$(ModAssemblies)$(TargetName).pdb')" />
+  </Target>
 </Project>
