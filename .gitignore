@@ -35,3 +35,4 @@ Directory.Build.targets
 *.slnx
 AGENTS.md
 CLAUDE.md
+**/Properties/AssemblyInfo.cs
