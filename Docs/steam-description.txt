@@ -1,0 +1,13 @@
+Whenever your research queue is empty, it automatically selects the next logical project, prioritizing the lowest historical tech level and the cheapest remaining cost.
+
+
+[h2]Why this mod?[/h2]
+If you’ve put thousands of hours into RimWorld, you probably don’t care exactly what’s next—you just want the research to continue.
+
+While it’s similar to mods like [b]Research Whatever[/b], this one was built specifically to respect tech levels first before cost.  Regardless of how you start it will always choose the cheapest tech from the lowest tech level available.  Yes that Industrial tech might be cheaper but you still have outstanding Neolithic techs, so do those first.
+Your tribe won't accidentally stumble into Microelectronics before they've mastered the Bow.
+
+I like to play Progression games and level up through the eras.  I don't care whats next just pick something as I am going to do it all anyway.  A handy letter will let you know when you've run out of available techs to research and its time to either level up your tech level or build something, like the high tech Research bench. to continue.
+[h][/h]
+
+I have released this a little early as I am actively using it in a full playthrough right now, let me know your feedback and bugs if you choose to jump in early with me!
