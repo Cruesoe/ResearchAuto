@@ -18,6 +18,7 @@
     </modDependencies>
 	<incompatibleWith>
 		<li>avilmask.ResearchWhatever</li>
+		<li>cruesoe.researchqueue</li>
 	</incompatibleWith>
 
 		<loadAfter>
