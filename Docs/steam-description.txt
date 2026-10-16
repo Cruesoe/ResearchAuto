@@ -1,13 +1,26 @@
-Whenever your research queue is empty, it automatically selects the next logical project, prioritizing the lowest historical tech level and the cheapest remaining cost.
+[b]Whenever nothing is being researched, the next logical project starts automatically: the lowest tech level first, then the cheapest.[/b]
 
+If you've put thousands of hours into RimWorld, you probably don't care exactly what's next; you just want the research to continue. Unlike similar mods, this one respects tech levels before cost, so your tribe won't stumble into Microelectronics before it has mastered the Bow.
 
-[h2]Why this mod?[/h2]
-If you’ve put thousands of hours into RimWorld, you probably don’t care exactly what’s next—you just want the research to continue.
+[h2]Features[/h2]
+[list]
+[*]When the research slot is empty, the cheapest available project from the lowest remaining tech level starts, with ties picked at random.
+[*]A project that already has progress is finished before a new one is started.
+[*]A new project is picked shortly after the last one finishes, and never while the research tab is open.
+[*]Anomaly, Gravship and Monolyn knowledge research run as their own queues alongside normal research.
+[*]A letter tells you when every available project is done, so you know it's time to advance your tech level or build better research benches.
+[/list]
 
-While it’s similar to mods like [b]Research Whatever[/b], this one was built specifically to respect tech levels first before cost.  Regardless of how you start it will always choose the cheapest tech from the lowest tech level available.  Yes that Industrial tech might be cheaper but you still have outstanding Neolithic techs, so do those first.
-Your tribe won't accidentally stumble into Microelectronics before they've mastered the Bow.
+[h2]Settings[/h2]
+[list]
+[*][b]Enable Auto-Research[/b]: turns automatic picking on or off.
+[*][b]Show Notifications[/b]: shows a message each time a project starts.
+[*][b]Restrict to Current Era[/b]: only picks projects at or below your faction's tech level.
+[*][b]Ignore Tech Level[/b]: picks by cost alone, across all tech levels.
+[*][b]Prioritize Expensive Projects[/b]: picks the most expensive project instead of the cheapest.
+[*][b]Include Anomaly, Gravship and Monolyn Techs[/b]: turns each parallel queue on or off.
+[/list]
 
-I like to play Progression games and level up through the eras.  I don't care whats next just pick something as I am going to do it all anyway.  A handy letter will let you know when you've run out of available techs to research and its time to either level up your tech level or build something, like the high tech Research bench. to continue.
-[h][/h]
-
-I have released this a little early as I am actively using it in a full playthrough right now, let me know your feedback and bugs if you choose to jump in early with me!
+[h2]Compatibility[/h2]
+Not compatible with Research Whatever, because both pick the next research project.
+Safe to add to an existing save.
