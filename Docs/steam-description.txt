@@ -22,5 +22,5 @@ If you've put thousands of hours into RimWorld, you probably don't care exactly 
 [/list]
 
 [h2]Compatibility[/h2]
-Not compatible with Research Whatever, because both pick the next research project.
+Not compatible with Research Whatever or Research Queue, because they also pick the next research project.
 Safe to add to an existing save.
