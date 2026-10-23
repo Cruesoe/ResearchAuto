@@ -260,9 +260,9 @@ namespace ResearchAuto
             for (int i = 0; i < projects.Count; i++)
             {
                 var p = projects[i];
-                bool isAnomaly = p.tab == tabAnomalyDef;
-                bool isGravship = !isAnomaly && (p.tab == tabGravtechDef || p.tab == tabGravShipDef);
-                bool isDivinitech = !isAnomaly && !isGravship && p.knowledgeCategory == knowledgeDivinitechDef;
+                bool isAnomaly = IsAnomaly(p);
+                bool isGravship = !isAnomaly && IsGravship(p);
+                bool isDivinitech = !isAnomaly && !isGravship && IsDivinitech(p);
 
                 if (p.knowledgeCategory != null && research.GetProject(p.knowledgeCategory) == p)
                 {
@@ -416,10 +416,25 @@ namespace ResearchAuto
             return selected;
         }
 
+        // A def is null when its DLC or mod isn't loaded; never match on null,
+        // or every project with no tab/knowledge category lands in that queue.
+        private static bool IsAnomaly(ResearchProjectDef p)
+        {
+            EnsureTabsResolved();
+            return tabAnomalyDef != null && p.tab == tabAnomalyDef;
+        }
+
         private static bool IsGravship(ResearchProjectDef p)
         {
             EnsureTabsResolved();
-            return p.tab == tabGravtechDef || p.tab == tabGravShipDef;
+            return (tabGravtechDef != null && p.tab == tabGravtechDef)
+                || (tabGravShipDef != null && p.tab == tabGravShipDef);
+        }
+
+        private static bool IsDivinitech(ResearchProjectDef p)
+        {
+            EnsureTabsResolved();
+            return knowledgeDivinitechDef != null && p.knowledgeCategory == knowledgeDivinitechDef;
         }
     }
 }
