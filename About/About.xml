@@ -1,26 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
-    <name>Research: Auto</name>
-    <author>Cruesoe</author>
-    <packageId>cruesoe.research.auto</packageId>
-    <description>Whenever your research queue is empty, it automatically selects the next logical project, prioritizing the lowest historical tech level and the cheapest remaining cost</description>
-    <modVersion IgnoreIfNoMatchingField="True">261023</modVersion>
-    <supportedVersions>
-        <li>1.6</li>
-        <li>1.7</li>
-    </supportedVersions>
-    <modDependencies>
-        <li>
-            <packageId>brrainz.harmony</packageId>
-            <displayName>Harmony</displayName>
-            <steamWorkshopUrl>steamcommunity.com/sharedfiles/filedetails/?id=2009463077</steamWorkshopUrl>
-        </li>
-    </modDependencies>
-	<incompatibleWith>
-		<li>avilmask.ResearchWhatever</li>
-		<li>cruesoe.researchqueue</li>
-	</incompatibleWith>
-
-		<loadAfter>
-	</loadAfter>
+  <name>Research: Auto</name>
+  <author>Cruesoe</author>
+  <packageId>cruesoe.research.auto</packageId>
+  <description>Whenever nothing is being researched, the next logical project starts automatically: the lowest tech level first, then the cheapest.</description>
+  <modVersion IgnoreIfNoMatchingField="True">261023</modVersion>
+  <supportedVersions>
+    <li>1.6</li>
+    <li>1.7</li>
+  </supportedVersions>
+  <modDependencies>
+    <li>
+      <packageId>brrainz.harmony</packageId>
+      <displayName>Harmony</displayName>
+      <steamWorkshopUrl>steamcommunity.com/sharedfiles/filedetails/?id=2009463077</steamWorkshopUrl>
+    </li>
+  </modDependencies>
+  <incompatibleWith>
+    <li>avilmask.ResearchWhatever</li>
+    <li>cruesoe.researchqueue</li>
+  </incompatibleWith>
 </ModMetaData>

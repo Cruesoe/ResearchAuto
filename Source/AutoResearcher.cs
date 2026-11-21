@@ -1,124 +1,19 @@
 ﻿using System.Collections.Generic;
-using UnityEngine;
+using System.Reflection;
+using HarmonyLib;
 using RimWorld;
 using Verse;
-using HarmonyLib;
 
 namespace ResearchAuto
 {
-    public class ResearchAutoSettings : ModSettings
-    {
-        public bool modEnabled = true;
-        public bool ignoreTechLevel = false;
-        public bool restrictToPlayerTech = false;
-        public bool showMessages = true;
-        public bool includeAnomaly = true;
-        public bool includeGravship = true;
-        public bool includeDivinitech = true;
-        public bool prioritizeExpensive = false;
-
-        public override void ExposeData()
-        {
-            base.ExposeData();
-            Scribe_Values.Look(ref modEnabled, "modEnabled", true);
-            Scribe_Values.Look(ref ignoreTechLevel, "ignoreTechLevel", false);
-            Scribe_Values.Look(ref restrictToPlayerTech, "restrictToPlayerTech", false);
-            Scribe_Values.Look(ref showMessages, "showMessages", true);
-            Scribe_Values.Look(ref includeAnomaly, "includeAnomaly", true);
-            Scribe_Values.Look(ref includeGravship, "includeGravship", true);
-            Scribe_Values.Look(ref includeDivinitech, "includeDivinitech", true);
-            Scribe_Values.Look(ref prioritizeExpensive, "prioritizeExpensive", false);
-        }
-    }
-
-    public class ResearchAutoMod : Mod
-    {
-        public static ResearchAutoSettings settings;
-
-        public ResearchAutoMod(ModContentPack content) : base(content)
-        {
-            settings = GetSettings<ResearchAutoSettings>();
-        }
-
-        public override void DoSettingsWindowContents(Rect inRect)
-        {
-            var listing = new Listing_Standard();
-            listing.Begin(inRect);
-
-            DrawSectionHeader(listing, "Core Settings");
-            listing.CheckboxLabeled("Enable Auto-Research", ref settings.modEnabled);
-            listing.CheckboxLabeled("Show Notifications", ref settings.showMessages);
-
-            listing.Gap(12f);
-            DrawSectionHeader(listing, "Sorting & Filtering");
-            listing.CheckboxLabeled("Restrict to Current Era", ref settings.restrictToPlayerTech);
-            if (!settings.restrictToPlayerTech)
-                listing.CheckboxLabeled("Ignore Tech Level", ref settings.ignoreTechLevel);
-            listing.CheckboxLabeled("Prioritize Expensive Projects", ref settings.prioritizeExpensive);
-
-            listing.Gap(12f);
-            DrawSectionHeader(listing, "Parallel Queues");
-            listing.CheckboxLabeled("Include Anomaly Techs", ref settings.includeAnomaly);
-            listing.CheckboxLabeled("Include Gravship Techs", ref settings.includeGravship);
-            listing.CheckboxLabeled("Include Monolyn Race Technologies", ref settings.includeDivinitech);
-
-            listing.End();
-        }
-
-        private static void DrawSectionHeader(Listing_Standard listing, string label)
-        {
-            Text.Font = GameFont.Medium;
-            listing.Label(label);
-            Text.Font = GameFont.Small;
-            listing.GapLine();
-        }
-
-        public override string SettingsCategory() => "Research: Auto";
-    }
-
-    [StaticConstructorOnStartup]
-    public static class ResearchAutoHarmony
-    {
-        static ResearchAutoHarmony()
-        {
-            new Harmony("com.researchauto.mod").PatchAll();
-        }
-    }
-
-    [HarmonyPatch(typeof(ResearchManager), "FinishProject")]
-    public static class ResearchManager_FinishProject_Patch
-    {
-        public static void Postfix() => Current.Game.GetComponent<AutoResearcher>()?.TriggerDelayedCheck(300);
-    }
-
-    [HarmonyPatch(typeof(ResearchManager), "SetCurrentProject")]
-    public static class ResearchManager_SetCurrentProject_Patch
-    {
-        public static void Postfix(ResearchProjectDef proj)
-        {
-            if (proj != null)
-                Current.Game.GetComponent<AutoResearcher>()?.Notify_ProjectStarted(proj);
-        }
-    }
-
-    [HarmonyPatch(typeof(ResearchManager), "StopProject")]
-    public static class ResearchManager_StopProject_Patch
-    {
-        public static void Postfix(ResearchProjectDef proj)
-        {
-            if (proj != null)
-                Current.Game.GetComponent<AutoResearcher>()?.Notify_ProjectStopped(proj);
-        }
-    }
-
-    public enum ResearchCategory { Standard, Anomaly, Gravship, Divinitech }
-
     public class AutoResearcher : GameComponent
     {
         private const string TabAnomaly = "Anomaly";
         private const string TabGravtech = "VGE_Gravtech";
         private const string TabGravShip = "VGE_GravShip";
         private const string KnowledgeDivinitech = "Information";
+        private const string VgeGravtechSlotType = "VanillaGravshipExpanded.World_ExposeData_Patch";
+        private const string VgeGravtechSlotField = "currentGravtechProject";
         private const int IdlePollInterval = 2500;
         private const int ResearchTabDeferTicks = 300;
 
@@ -126,11 +21,12 @@ namespace ResearchAuto
         private static ResearchTabDef tabGravtechDef;
         private static ResearchTabDef tabGravShipDef;
         private static KnowledgeCategoryDef knowledgeDivinitechDef;
+        // Vanilla Gravship Expanded's own gravtech slot; null without it, when gravtech uses the standard slot
+        private static FieldInfo vgeGravtechSlot;
         private static bool tabsResolved;
 
         private bool everythingFinishedLetterSent;
         private int delayTicks = -1;
-        private ResearchProjectDef lastAssignedGravtech;
         private readonly List<ResearchProjectDef> anomalyCandidates = new List<ResearchProjectDef>();
         private readonly List<ResearchProjectDef> divinitechCandidates = new List<ResearchProjectDef>();
         private readonly List<ResearchProjectDef> gravshipCandidates = new List<ResearchProjectDef>();
@@ -143,7 +39,6 @@ namespace ResearchAuto
             base.ExposeData();
             Scribe_Values.Look(ref everythingFinishedLetterSent, "everythingFinishedLetterSent", false);
             Scribe_Values.Look(ref delayTicks, "delayTicks", -1);
-            Scribe_Defs.Look(ref lastAssignedGravtech, "lastAssignedGravtech");
         }
 
         public override void GameComponentTick()
@@ -153,24 +48,13 @@ namespace ResearchAuto
 
             if (delayTicks > 0 && --delayTicks == 0)
             {
-                AssignNextResearchIfIdle();
+                // Cleared first so a deferral set by the call below is kept
                 delayTicks = -1;
+                AssignNextResearchIfIdle();
             }
         }
 
         public void TriggerDelayedCheck(int ticks) => delayTicks = ticks;
-
-        public void Notify_ProjectStarted(ResearchProjectDef proj)
-        {
-            if (IsGravship(proj))
-                lastAssignedGravtech = proj;
-        }
-
-        public void Notify_ProjectStopped(ResearchProjectDef proj)
-        {
-            if (lastAssignedGravtech == proj)
-                lastAssignedGravtech = null;
-        }
 
         public void AssignNextResearchIfIdle()
         {
@@ -192,19 +76,8 @@ namespace ResearchAuto
             if (settings.includeDivinitech && !divinitechActive)
                 TryStartResearch(ResearchCategory.Divinitech);
 
-            if (settings.includeGravship)
-            {
-                if (!gravshipActive && lastAssignedGravtech != null && !lastAssignedGravtech.IsFinished)
-                {
-                    if (lastAssignedGravtech.CanStartNow)
-                        gravshipActive = true;
-                    else
-                        lastAssignedGravtech = null;
-                }
-
-                if (!gravshipActive)
-                    TryStartResearch(ResearchCategory.Gravship);
-            }
+            if (settings.includeGravship && !gravshipActive)
+                TryStartResearch(ResearchCategory.Gravship);
 
             if (Find.ResearchManager.GetProject() == null)
             {
@@ -215,8 +88,8 @@ namespace ResearchAuto
                 else if (!everythingFinishedLetterSent)
                 {
                     Find.LetterStack.ReceiveLetter(
-                        "Auto-Research Complete",
-                        "All available standard research projects for your current era and settings have been completed. Advance your tech level or adjust your mod settings to continue.",
+                        "ResearchAuto_AllDoneLabel".Translate(),
+                        "ResearchAuto_AllDoneText".Translate(),
                         LetterDefOf.NeutralEvent);
                     everythingFinishedLetterSent = true;
                 }
@@ -236,7 +109,17 @@ namespace ResearchAuto
             tabGravtechDef = DefDatabase<ResearchTabDef>.GetNamedSilentFail(TabGravtech);
             tabGravShipDef = DefDatabase<ResearchTabDef>.GetNamedSilentFail(TabGravShip);
             knowledgeDivinitechDef = DefDatabase<KnowledgeCategoryDef>.GetNamedSilentFail(KnowledgeDivinitech);
+            if (tabGravtechDef != null)
+            {
+                var slotType = AccessTools.TypeByName(VgeGravtechSlotType);
+                vgeGravtechSlot = slotType != null ? AccessTools.Field(slotType, VgeGravtechSlotField) : null;
+            }
             tabsResolved = true;
+        }
+
+        private static bool VgeGravtechSlotBusy()
+        {
+            return vgeGravtechSlot?.GetValue(null) is ResearchProjectDef project && !project.IsFinished;
         }
 
         private void ClassifyProjects(out bool anomalyActive, out bool gravshipActive, out bool divinitechActive)
@@ -286,6 +169,9 @@ namespace ResearchAuto
                 else if (!restrict || p.techLevel <= playerTech)
                     standardCandidates.Add(p);
             }
+
+            if (VgeGravtechSlotBusy())
+                gravshipActive = true;
         }
 
         private List<ResearchProjectDef> GetCandidates(ResearchCategory category)
@@ -306,7 +192,9 @@ namespace ResearchAuto
         private bool TryStartResearch(ResearchCategory category)
         {
             var candidates = GetCandidates(category);
-            RemoveProjectsWithOccupiedSlots(candidates);
+            // Vanilla Gravship Expanded moves gravtech projects into its own slot, so the standard slot doesn't block them
+            bool ownSlot = category == ResearchCategory.Gravship && vgeGravtechSlot != null;
+            RemoveProjectsWithOccupiedSlots(candidates, ownSlot);
             if (candidates.Count == 0)
                 return false;
 
@@ -317,17 +205,18 @@ namespace ResearchAuto
 
             Find.ResearchManager.SetCurrentProject(selected);
             if (ResearchAutoMod.settings.showMessages)
-                Messages.Message($"Research started: {selected.LabelCap}", MessageTypeDefOf.SilentInput, false);
+                Messages.Message("ResearchAuto_ResearchStarted".Translate(selected.LabelCap), MessageTypeDefOf.SilentInput, false);
             return true;
         }
 
-        private static void RemoveProjectsWithOccupiedSlots(List<ResearchProjectDef> candidates)
+        private static void RemoveProjectsWithOccupiedSlots(List<ResearchProjectDef> candidates, bool ownSlot)
         {
             var research = Find.ResearchManager;
+            bool standardBusy = !ownSlot && research.GetProject() != null;
             for (int i = candidates.Count - 1; i >= 0; i--)
             {
                 var candidate = candidates[i];
-                bool standardSlotOccupied = candidate.baseCost > 0f && research.GetProject() != null;
+                bool standardSlotOccupied = standardBusy && candidate.baseCost > 0f;
                 bool knowledgeSlotOccupied = candidate.knowledgeCategory != null
                     && research.GetProject(candidate.knowledgeCategory) != null;
 
@@ -420,20 +309,17 @@ namespace ResearchAuto
         // or every project with no tab/knowledge category lands in that queue.
         private static bool IsAnomaly(ResearchProjectDef p)
         {
-            EnsureTabsResolved();
             return tabAnomalyDef != null && p.tab == tabAnomalyDef;
         }
 
         private static bool IsGravship(ResearchProjectDef p)
         {
-            EnsureTabsResolved();
             return (tabGravtechDef != null && p.tab == tabGravtechDef)
                 || (tabGravShipDef != null && p.tab == tabGravShipDef);
         }
 
         private static bool IsDivinitech(ResearchProjectDef p)
         {
-            EnsureTabsResolved();
             return knowledgeDivinitechDef != null && p.knowledgeCategory == knowledgeDivinitechDef;
         }
     }
