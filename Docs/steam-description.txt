@@ -6,7 +6,7 @@ If you've put thousands of hours into RimWorld, you probably don't care exactly 
 [list]
 [*]When the research slot is empty, the cheapest available project from the lowest remaining tech level starts, with ties picked at random.
 [*]A project that already has progress is finished before a new one is started.
-[*]A new project is picked shortly after the last one finishes, and never while the research tab is open.
+[*]A new project is picked as soon as the last one finishes, and never while the research tab is open.
 [*]Anomaly, Gravship and Monolyn knowledge research run as their own queues alongside normal research.
 [*]A letter tells you when every available project is done, so you know it's time to advance your tech level or build better research benches.
 [/list]

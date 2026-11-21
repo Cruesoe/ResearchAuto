@@ -14,13 +14,4 @@ Your choices always take priority. If you manually select a project, Research: A
 - Supports separate Anomaly, gravship, and Monolyn divinitech research queues.
 - Can show a notification whenever a new project is selected.
 
-## Settings
-
-Open **Options → Mod settings → Research: Auto** to:
-
-- Enable or disable automatic research.
-- Toggle selection notifications.
-- Restrict projects to the current era.
-- Ignore tech level when sorting projects.
-- Prefer expensive projects.
-- Include or exclude Anomaly, gravship, and Monolyn research.
+Settings cover auto-research on or off, notifications, era and tech level sorting, expensive projects first, and each parallel queue.

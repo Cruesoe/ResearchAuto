@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ResearchAuto_SectionCore>Core Settings</ResearchAuto_SectionCore>
+  <ResearchAuto_ModEnabled>Enable Auto-Research</ResearchAuto_ModEnabled>
+  <ResearchAuto_ShowMessages>Show Notifications</ResearchAuto_ShowMessages>
+  <ResearchAuto_SectionSorting>Sorting &amp; Filtering</ResearchAuto_SectionSorting>
+  <ResearchAuto_RestrictToPlayerTech>Restrict to Current Era</ResearchAuto_RestrictToPlayerTech>
+  <ResearchAuto_IgnoreTechLevel>Ignore Tech Level</ResearchAuto_IgnoreTechLevel>
+  <ResearchAuto_PrioritizeExpensive>Prioritize Expensive Projects</ResearchAuto_PrioritizeExpensive>
+  <ResearchAuto_SectionParallel>Parallel Queues</ResearchAuto_SectionParallel>
+  <ResearchAuto_IncludeAnomaly>Include Anomaly Techs</ResearchAuto_IncludeAnomaly>
+  <ResearchAuto_IncludeGravship>Include Gravship Techs</ResearchAuto_IncludeGravship>
+  <ResearchAuto_IncludeDivinitech>Include Monolyn Race Technologies</ResearchAuto_IncludeDivinitech>
+  <ResearchAuto_ResearchStarted>Research started: {0}</ResearchAuto_ResearchStarted>
+  <ResearchAuto_AllDoneLabel>Auto-Research Complete</ResearchAuto_AllDoneLabel>
+  <ResearchAuto_AllDoneText>All available standard research projects for your current era and settings have been completed. Advance your tech level or adjust your mod settings to continue.</ResearchAuto_AllDoneText>
+</LanguageData>
