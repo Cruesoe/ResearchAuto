@@ -88,7 +88,8 @@ namespace ResearchAuto
     [HarmonyPatch(typeof(ResearchManager), "FinishProject")]
     public static class ResearchManager_FinishProject_Patch
     {
-        public static void Postfix() => Current.Game.GetComponent<AutoResearcher>()?.TriggerDelayedCheck(300);
+        // Picks the next project on the following tick, after FinishProject and other mods' postfixes have run
+        public static void Postfix() => Current.Game.GetComponent<AutoResearcher>()?.TriggerDelayedCheck(1);
     }
 
     [HarmonyPatch(typeof(ResearchManager), "SetCurrentProject")]
